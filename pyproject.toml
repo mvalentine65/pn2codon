@@ -1,0 +1,19 @@
+[build-system]
+requires = ["maturin>=0.13,<0.14"]
+build-backend = "maturin"
+
+[tool.maturin]
+bindings = "pyo3"
+target = "x86_64-unknown-linux-gnu"
+
+
+[project]
+name = "pro2codon"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+
