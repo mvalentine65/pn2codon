@@ -1,6 +1,6 @@
 [package]
 name = "pro2codon"
-version = "0.11.1"
+version = "0.0.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,8 +12,8 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.17.1", features = ["extension-module"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-itertools = "*"
-hashbrown = "*"
+lazy_static = "*"
+parking_lot = "*"
 
 [profile.release]
 lto = true
