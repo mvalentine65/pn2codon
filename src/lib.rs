@@ -19,18 +19,11 @@ use std::{panic, path::PathBuf, thread};
 lazy_static! {
     static ref FILE_STEM: Mutex<String> = Mutex::new("".to_string());
     static ref ERROR_HEADER: Mutex<String> = Mutex::new("".to_string());
-    static ref LIST_UNKNOWNS: Vec<String> = vec![
-        "ATN", "AGN", "ACN", "ANT", "ANG", "ANC", "TAN", "TGN", "TCN", "TNA", "TNG", "TNC", "GAN",
-        "GTN", "GCN", "GNA", "GNT", "GNC", "CAN", "CTN", "CGN", "CNA", "CNT", "CNG", "NAT", "NAG",
-        "NAC", "NTA", "NTG", "NTC", "NGA", "NGT", "NGC", "NCA", "NCT", "NCG"
-    ]
-    .into_iter()
-    .map(|x| x.to_string())
-    .collect();
     static ref VEC_PEPS: Vec<char> = vec![
         'A', 'L', 'W', 'Q', 'Y', 'E', 'C', 'D', 'F', 'G', 'H', 'I', 'M', 'K', 'P', 'R',
-        'S', 'V', 'N', 'T', '*', '-', 'B', 'J', 'Z', 'X'
+        'S', 'V', 'N', 'T', '*', '-', 'B', 'J', 'Z', 'X',
     ];
+    static ref BASES: Vec<char> = vec!['A', 'T', 'G', 'C', 'U', 'N'];
 }
 
 fn error_out_program(message: &str) {
@@ -167,21 +160,16 @@ impl AminoAcidTranslator {
                                         let original_triplet = compare_triplets.next().unwrap();
 
                                         match original_triplet.contains('N') {
-                                            true => {
-                                                match LIST_UNKNOWNS
-                                                    .iter() 
-                                                    .cloned()
-                                                    .filter(|unk| &original_triplet == unk)
-                                                    .next() {
-                                                        Some(s) => {
-                                                            return s
-                                                        },
-                                                        None => {
-                                                            self.error_out();
-                                                            return "".to_string();
-                                                        },
-                                                    }                                            
-                            
+                                            true => {                                                                                    
+                                                match BASES.iter().cloned().any(|b| original_triplet.contains(b)) {
+                                                    true => {
+                                                        return original_triplet;
+                                                    },
+                                                    false => {
+                                                        error_out_program("Triplet contains both an unknown N and a non-CGTAU character");
+                                                        "".to_string()
+                                                    }
+                                                }
                                             },
                                             false => {
                                                 taxa_mut.retain(|s| s == &original_triplet);
