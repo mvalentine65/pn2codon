@@ -3,17 +3,18 @@
 #[macro_use]
 extern crate lazy_static;
 
-use parking_lot::Mutex;
+use parking_lot::{MutexGuard, Mutex};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 use std::collections::HashMap;
 use std::ops::DerefMut;
-use std::process;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Duration;
 use std::{panic, path::PathBuf, thread};
+
+static DO_SKIP: AtomicBool = AtomicBool::new(false);
 
 
 lazy_static! {
@@ -27,16 +28,18 @@ lazy_static! {
 }
 
 fn error_out_program(message: &str) {
+    println!("Function must error out prematurely:");
+    DO_SKIP.store(true, Ordering::Relaxed);
     let file_stem = FILE_STEM.lock();
     let error_header = ERROR_HEADER.lock();
 
+
     println!(
-        "\nERROR CAUGHT IN FILE {} AND HEADER {}: {}\n",
+        "\n===ERROR CAUGHT IN FILE {} AND HEADER {}: {}\n\n Sleeping for 10 milliseconds to\n===",
         file_stem, error_header, message
     );
 
-
-    process::exit(0);
+    thread::sleep(Duration::from_millis(10));
 }
 
 struct AminoAcidTranslator((String, String), (String, String));
@@ -47,6 +50,7 @@ impl AminoAcidTranslator {
 
         let mut htmx = ERROR_HEADER.lock();
         *htmx = aa_header.clone();
+        MutexGuard::unlock_fair(htmx);
 
         if aa_header != nt_header {
             error_out_program(&format!(
@@ -117,14 +121,12 @@ impl AminoAcidTranslator {
                 MISMATCH ERROR:
                 The following Amino Acid failed to match with its source Nucleotide pair.
 
-                Header: `{}`,                    
-                ===
                 Amino Acid: `{}`,
-                ===
+                ======
                 Source Nucleotide: `{}`,
                 =======
             "#,
-            header, amino_acid, compare_dna
+            amino_acid, compare_dna
         ));
     }
 
@@ -159,17 +161,9 @@ impl AminoAcidTranslator {
                                                                            
                                         let original_triplet = compare_triplets.next().unwrap();
 
-                                        match original_triplet.contains('N') {
-                                            true => {                                                                                    
-                                                match BASES.iter().cloned().any(|b| original_triplet.contains(b)) {
-                                                    true => {
-                                                        return original_triplet;
-                                                    },
-                                                    false => {
-                                                        error_out_program("Triplet contains both an unknown N and a non-CGTAU character");
-                                                        "".to_string()
-                                                    }
-                                                }
+                                        match original_triplet.contains('N') || aa == 'X' {
+                                            true => { 
+                                                return original_triplet;                                                    
                                             },
                                             false => {
                                                 taxa_mut.retain(|s| s == &original_triplet);
@@ -212,6 +206,7 @@ pub fn pn2codon(
 ) -> String {
     let mut fstem_mutex = FILE_STEM.lock();
     *fstem_mutex = file_steem;
+    MutexGuard::unlock_fair(fstem_mutex);
 
     let aa_seq_len = amino_seqs.len();
     let nt_seq_len = nuc_seqs.len();
@@ -227,16 +222,19 @@ pub fn pn2codon(
             false => ((nt_seq_len as isize) - (aa_seq_len as isize)).abs(),
         };
 
-        error_out_program(&format!(
+        println!(
             "Length of the {} sequence is longer than the length of {} sequence by a number of {}.",
             longer_shorter.0, longer_shorter.1, diff
-        ));
-    }
+        );
 
-    amino_seqs
+        return "".to_string();
+    }
+   
+    let file = String::from_iter(amino_seqs
         .iter()
         .cloned()
         .zip(nuc_seqs.iter().cloned())
+        .take_while(|_| !DO_SKIP.load(Ordering::Relaxed))
         .map(|((aa_header, aa), (nt_header, nt))| {
             let mut amino_acid = AminoAcidTranslator(
                 (aa_header.clone(), aa.clone()),
@@ -245,15 +243,20 @@ pub fn pn2codon(
             amino_acid.do_checks();
             amino_acid.streamline();
 
-            let codon = amino_acid.reverse_translate_and_compare(&gene_table);
+            let mut codon = amino_acid.reverse_translate_and_compare(&gene_table);
+            let mut h_clone = aa_header.clone();
 
-            format!("{}\n{}", aa_header, codon)
+            codon.push('\n');
+            h_clone.push('\n');
+
+            vec![h_clone, codon]
         })
-        .collect::<Vec<String>>()
-        .join("\n")
+        .flatten()
+    );
 
+    DO_SKIP.store(false, Ordering::Relaxed);
 
-   
+    file   
 }
 
 #[pymodule]
