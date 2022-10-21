@@ -101,7 +101,7 @@ impl AminoAcidTranslator {
         let mut amino_acid_filtered = String::new();
 
         amino_acid_trimmed.char_indices().for_each(|(i, c)| {
-            match VEC_PEPS.contains(&c)
+            match !VEC_PEPS.contains(&c)
             {
                 true => {
                     amino_acid_filtered.push('X');
@@ -143,7 +143,7 @@ impl AminoAcidTranslator {
             .map(|i| compare_dna[i..i + 3].to_string())
             .into_iter();
 
-        let final_taxon = amino_acid
+        amino_acid
             .chars()
             .map(|aa| {
                 match aa == '-' {
@@ -163,6 +163,7 @@ impl AminoAcidTranslator {
                                 match taxa_triplets {
                                     Some(taxa) => {
                                         let mut taxa_mut = taxa.clone();
+                                                                           
                                         let original_triplet = compare_triplets.next().unwrap();
 
                                         match original_triplet.contains('N') {
@@ -172,7 +173,9 @@ impl AminoAcidTranslator {
                                                     .cloned()
                                                     .filter(|unk| &original_triplet == unk)
                                                     .next() {
-                                                        Some(s) => s,
+                                                        Some(s) => {
+                                                            return s
+                                                        },
                                                         None => {
                                                             self.error_out();
                                                             return "".to_string();
@@ -208,9 +211,7 @@ impl AminoAcidTranslator {
                 }
             })
             .collect::<Vec<String>>()
-            .join("");
-
-        final_taxon
+            .join("")
     }
 }
 
