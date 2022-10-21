@@ -29,7 +29,7 @@ lazy_static! {
     .collect();
     static ref VEC_PEPS: Vec<char> = vec![
         'A', 'L', 'W', 'Q', 'Y', 'E', 'C', 'D', 'F', 'G', 'H', 'I', 'M', 'K', 'P', 'R',
-        'S', 'V', 'N', 'T', '*', '-',
+        'S', 'V', 'N', 'T', '*', '-', 'B', 'J', 'Z', 'X'
     ];
 }
 
