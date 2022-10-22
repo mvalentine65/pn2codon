@@ -13,13 +13,9 @@ use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Duration;
 use std::{panic, path::PathBuf, thread};
-
-static DO_SKIP: AtomicBool = AtomicBool::new(false);
-
+use std::cell::RefCell;
 
 lazy_static! {
-    static ref FILE_STEM: Mutex<String> = Mutex::new("".to_string());
-    static ref ERROR_HEADER: Mutex<String> = Mutex::new("".to_string());
     static ref VEC_PEPS: Vec<char> = vec![
         'A', 'L', 'W', 'Q', 'Y', 'E', 'C', 'D', 'F', 'G', 'H', 'I', 'M', 'K', 'P', 'R',
         'S', 'V', 'N', 'T', '*', '-', 'B', 'J', 'Z', 'X',
@@ -27,33 +23,19 @@ lazy_static! {
     static ref BASES: Vec<char> = vec!['A', 'T', 'G', 'C', 'U', 'N'];
 }
 
-fn error_out_program(message: &str) {
-    println!("Function must error out prematurely:");
-    DO_SKIP.store(true, Ordering::Relaxed);
-    let file_stem = FILE_STEM.lock();
-    let error_header = ERROR_HEADER.lock();
-
-
-    println!(
-        "\n===ERROR CAUGHT IN FILE {} AND HEADER {}: {}\n\n Sleeping for 10 milliseconds to\n===",
-        file_stem, error_header, message
-    );
-
-    thread::sleep(Duration::from_millis(10));
-}
-
-struct AminoAcidTranslator((String, String), (String, String));
+#[derive(Clone)]
+struct AminoAcidTranslator(
+    (String, String), 
+    (String, String),
+    (RefCell<bool>, String),
+);
 
 impl AminoAcidTranslator {
-    pub fn do_checks(&mut self) {
-        let AminoAcidTranslator((aa_header, aa), (nt_header, nt)) = self;
-
-        let mut htmx = ERROR_HEADER.lock();
-        *htmx = aa_header.clone();
-        MutexGuard::unlock_fair(htmx);
+    pub fn do_checks(&self) {
+        let AminoAcidTranslator((aa_header, aa), (nt_header, nt), _) = self;
 
         if aa_header != nt_header {
-            error_out_program(&format!(
+            self.error_out(format!(
                 "AA header -> {} is not the same as NT header -> {}",
                 aa_header, nt_header
             ));
@@ -83,7 +65,7 @@ impl AminoAcidTranslator {
                 format!("with a difference of {} {}", num_marker.0, num_marker.1)
             };
 
-            error_out_program(&format!(
+            self.error_out(format!(
                 "{} is larger than {} {}",
                 longer_shorter.0, longer_shorter.1, diff
             ));
@@ -91,10 +73,9 @@ impl AminoAcidTranslator {
     }
 
     pub fn streamline(&mut self) {
-        let AminoAcidTranslator((header, amino_acid), (_, nucleotide)) = self;
+        let AminoAcidTranslator((header, amino_acid), (_, nucleotide), _) = self;
 
         let mut amino_acid_trimmed = amino_acid.trim().to_uppercase();
-
         let mut amino_acid_filtered = String::new();
 
         amino_acid_trimmed.char_indices().for_each(|(i, c)| {
@@ -108,14 +89,33 @@ impl AminoAcidTranslator {
         });
 
         *amino_acid = amino_acid_filtered;
-
         *nucleotide = nucleotide.replace("-", "").replace(".", "");
     }
 
-    fn error_out(&self) {
-        let AminoAcidTranslator((header, amino_acid), (_, compare_dna)) = self;
+    fn error_out(&self, message: String) {
+        let AminoAcidTranslator((header, _), _, (dont_skip, file_stem)) = self;      
 
-        error_out_program(&format!(
+        match dont_skip.clone().into_inner() {
+            true => {
+                let mut dont_skip_deref = dont_skip.borrow_mut();
+
+                *dont_skip_deref = false;
+
+                println!(
+                    "\n===ERROR CAUGHT IN FILE {} AND HEADER {}:\n {}\n===",
+                    file_stem, header, message
+                );
+            },
+            false => (),
+        }
+
+    }
+
+    fn error_out_mismatch(&self) {
+        let AminoAcidTranslator((header, amino_acid), (_, compare_dna), _) = self;
+
+
+        self.error_out(format!(
             r#" 
                 ======
                 MISMATCH ERROR:
@@ -131,7 +131,7 @@ impl AminoAcidTranslator {
     }
 
     pub fn reverse_translate_and_compare(&self, gene_table: &HashMap<char, Vec<String>>) -> String {
-        let AminoAcidTranslator((header, amino_acid), (_, compare_dna)) = self;
+        let AminoAcidTranslator((header, amino_acid), (_, compare_dna), _) = self;
 
         let mut compare_triplets = (0..compare_dna.len())
             .step_by(3)
@@ -173,7 +173,7 @@ impl AminoAcidTranslator {
                                                         return t.clone()
                                                     },
                                                     None => {
-                                                        self.error_out();
+                                                        self.error_out_mismatch();
                                                         return "".to_string();
                                                     }
                                                 }
@@ -181,8 +181,8 @@ impl AminoAcidTranslator {
                                         }                                        
                                     }
                                     None => {
-                                        error_out_program(
-                                            "Genetic table does not have the pep. Perhaps you've chosen the wrong table index?"
+                                        self.error_out(
+                                            "Genetic table does not have the pep. Perhaps you've chosen the wrong table index?".to_string()
                                         );
                                         return "".to_string();
                                     }
@@ -204,10 +204,6 @@ pub fn pn2codon(
     amino_seqs: Vec<(String, String)>,
     nuc_seqs: Vec<(String, String)>,
 ) -> String {
-    let mut fstem_mutex = FILE_STEM.lock();
-    *fstem_mutex = file_steem;
-    MutexGuard::unlock_fair(fstem_mutex);
-
     let aa_seq_len = amino_seqs.len();
     let nt_seq_len = nuc_seqs.len();
 
@@ -229,16 +225,23 @@ pub fn pn2codon(
 
         return "".to_string();
     }
+
+    let mut dont_skip = RefCell::new(true);
    
     let file = String::from_iter(amino_seqs
         .iter()
         .cloned()
         .zip(nuc_seqs.iter().cloned())
-        .take_while(|_| !DO_SKIP.load(Ordering::Relaxed))
+        .take_while(|_| dont_skip.clone().into_inner())
         .map(|((aa_header, aa), (nt_header, nt))| {
+            if !dont_skip.clone().into_inner() {
+                println!("{}", dont_skip.clone().into_inner());
+            }
+            
             let mut amino_acid = AminoAcidTranslator(
                 (aa_header.clone(), aa.clone()),
                 (nt_header.clone(), nt.clone()),
+                (dont_skip.clone(), file_steem.clone())
             );
             amino_acid.do_checks();
             amino_acid.streamline();
@@ -254,9 +257,7 @@ pub fn pn2codon(
         .flatten()
     );
 
-    DO_SKIP.store(false, Ordering::Relaxed);
-
-    file   
+    file
 }
 
 #[pymodule]
