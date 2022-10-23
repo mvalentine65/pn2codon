@@ -201,60 +201,36 @@ impl AminoAcidTranslator {
 pub fn pn2codon(
     file_steem: String,
     gene_table: HashMap<char, Vec<String>>,
-    amino_seqs: Vec<(String, String)>,
-    nuc_seqs: Vec<(String, String)>,
-) -> String {
-    let aa_seq_len = amino_seqs.len();
-    let nt_seq_len = nuc_seqs.len();
-
-    if aa_seq_len != nt_seq_len {
-        let longer_shorter = match aa_seq_len > nt_seq_len {
-            true => ("AA", "NT"),
-            false => ("NT", "AA"),
-        };
-
-        let diff = match aa_seq_len > nt_seq_len {
-            true => ((aa_seq_len as isize) - (aa_seq_len as isize)).abs(),
-            false => ((nt_seq_len as isize) - (aa_seq_len as isize)).abs(),
-        };
-
-        println!(
-            "Length of the {} sequence is longer than the length of {} sequence by a number of {}.",
-            longer_shorter.0, longer_shorter.1, diff
-        );
-
-        return "".to_string();
-    }
-
+    seqs: HashMap<String, ((String, String), (String, String))>
+) -> String {    
     let mut dont_skip = RefCell::new(true);
    
-    let file = String::from_iter(amino_seqs
-        .iter()
-        .cloned()
-        .zip(nuc_seqs.iter().cloned())
-        .take_while(|_| dont_skip.clone().into_inner())
-        .map(|((aa_header, aa), (nt_header, nt))| {
-            if !dont_skip.clone().into_inner() {
-                println!("{}", dont_skip.clone().into_inner());
-            }
-            
-            let mut amino_acid = AminoAcidTranslator(
-                (aa_header.clone(), aa.clone()),
-                (nt_header.clone(), nt.clone()),
-                (dont_skip.clone(), file_steem.clone())
-            );
-            amino_acid.do_checks();
-            amino_acid.streamline();
+    let file = String::from_iter(
+        seqs
+            .iter()
+            .take_while(|_| dont_skip.clone().into_inner())
+            .map(|(header, ((aa_header, aa), (nt_header, nt)))| {
+                if !dont_skip.clone().into_inner() {
+                    println!("{}", dont_skip.clone().into_inner());
+                }
+                
+                let mut amino_acid = AminoAcidTranslator(
+                    (aa_header.clone(), aa.clone()),
+                    (nt_header.clone(), nt.clone()),
+                    (dont_skip.clone(), file_steem.clone())
+                );
+                amino_acid.streamline();
+                amino_acid.do_checks();
 
-            let mut codon = amino_acid.reverse_translate_and_compare(&gene_table);
-            let mut h_clone = aa_header.clone();
+                let mut codon = amino_acid.reverse_translate_and_compare(&gene_table);
+                let mut h_clone = header.clone();
 
-            codon.push('\n');
-            h_clone.push('\n');
+                codon.push('\n');
+                h_clone.push('\n');
 
-            vec![h_clone, codon]
-        })
-        .flatten()
+                vec![h_clone, codon]
+            })
+            .flatten()
     );
 
     file
