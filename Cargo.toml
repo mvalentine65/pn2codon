@@ -1,11 +1,11 @@
 [package]
-name = "pro2codon"
-version = "1.1.9"
+name = "pr2codon"
+version = "1.1.10"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-name = "pro2codon"
+name = "pr2codon"
 crate-type = ["cdylib"]
 
 [dependencies]

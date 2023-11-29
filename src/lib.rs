@@ -111,8 +111,10 @@ impl AminoAcidTranslator {
 
     }
 
-    fn error_out_mismatch(&self) {
+    fn error_out_mismatch(&self, aa_counter: usize) {
         let AminoAcidTranslator((header, amino_acid), (_, compare_dna), _) = self;
+        let start = std::cmp::max(10, aa_counter) - 10;
+        let stop = std::cmp::min(amino_acid.len() - 10, aa_counter) + 10;
 
 
         self.error_out(format!(
@@ -120,13 +122,12 @@ impl AminoAcidTranslator {
                 ======
                 MISMATCH ERROR:
                 The following Amino Acid failed to match with its source Nucleotide pair.
-
                 Amino Acid: `{}`,
                 ======
                 Source Nucleotide: `{}`,
                 =======
             "#,
-            amino_acid, compare_dna
+            &amino_acid[start..stop], &compare_dna[start*3..stop*3]
         ));
     }
 
@@ -137,10 +138,11 @@ impl AminoAcidTranslator {
             .step_by(3)
             .map(|i| compare_dna[i..i + 3].to_string())
             .into_iter();
-
+        let mut aa_counter: usize = 0;
         amino_acid
             .chars()
             .map(|aa| {
+                aa_counter += 1;
                 match aa == '-' {
                     true => {
                         return "---".to_string() 
@@ -173,7 +175,7 @@ impl AminoAcidTranslator {
                                                         return t.clone()
                                                     },
                                                     None => {
-                                                        self.error_out_mismatch();
+                                                        self.error_out_mismatch(aa_counter);
                                                         return "".to_string();
                                                     }
                                                 }
