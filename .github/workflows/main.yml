@@ -1,6 +1,6 @@
 
 
-name: Build p2codon
+name: Build pr2codon
 
 on:
   push:
