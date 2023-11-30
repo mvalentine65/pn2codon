@@ -198,12 +198,14 @@ impl AminoAcidTranslator {
             .join("")
     }
 }
-
+// There is something weird going on with the second seqs tuple.
+// It used to run with two elements, but now I get a value error because its taking 3,
+// but the tuple hasnt changed. Should I make two versions of the function?
 #[pyfunction]
 pub fn pn2codon(
     file_steem: String,
     gene_table: HashMap<char, Vec<String>>,
-    seqs: HashMap<String, ((String, String), (String, String))>
+    seqs: HashMap<String, ((String, String), (i32, String, String))>
 ) -> String {    
     let mut dont_skip = RefCell::new(true);
    
@@ -211,7 +213,7 @@ pub fn pn2codon(
         seqs
             .iter()
             .take_while(|_| dont_skip.clone().into_inner())
-            .map(|(header, ((aa_header, aa), (nt_header, nt)))| {
+            .map(|(header, ((aa_header, aa), (_ ,nt_header, nt)))| {
                 if !dont_skip.clone().into_inner() {
                     println!("{}", dont_skip.clone().into_inner());
                 }
@@ -238,8 +240,48 @@ pub fn pn2codon(
     file
 }
 
+#[pyfunction]
+pub fn pn2codon_orignal_args(
+    file_steem: String,
+    gene_table: HashMap<char, Vec<String>>,
+    seqs: HashMap<String, ((String, String), (String, String))>
+) -> String {
+    let mut dont_skip = RefCell::new(true);
+
+    let file = String::from_iter(
+        seqs
+            .iter()
+            .take_while(|_| dont_skip.clone().into_inner())
+            .map(|(header, ((aa_header, aa), (nt_header, nt)))| {
+                if !dont_skip.clone().into_inner() {
+                    println!("{}", dont_skip.clone().into_inner());
+                }
+
+                let mut amino_acid = AminoAcidTranslator(
+                    (aa_header.clone(), aa.clone()),
+                    (nt_header.clone(), nt.clone()),
+                    (dont_skip.clone(), file_steem.clone())
+                );
+                amino_acid.streamline();
+                amino_acid.do_checks();
+
+                let mut codon = amino_acid.reverse_translate_and_compare(&gene_table);
+                let mut h_clone = header.clone();
+
+                codon.push('\n');
+                h_clone.push('\n');
+
+                vec![h_clone, codon]
+            })
+            .flatten()
+    );
+
+    file
+}
+
 #[pymodule]
 fn pr2codon(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pn2codon, m)?)?;
+    m.add_function(wrap_pyfunction!(pn2codon_original_args, m)?)?;
     Ok(())
 }
