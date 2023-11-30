@@ -241,7 +241,7 @@ pub fn pn2codon(
 }
 
 #[pyfunction]
-pub fn pn2codon_orignal_args(
+pub fn pn2codon_original_args(
     file_steem: String,
     gene_table: HashMap<char, Vec<String>>,
     seqs: HashMap<String, ((String, String), (String, String))>
