@@ -239,7 +239,7 @@ pub fn pn2codon(
 }
 
 #[pymodule]
-fn pro2codon(_py: Python, m: &PyModule) -> PyResult<()> {
+fn pr2codon(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pn2codon, m)?)?;
     Ok(())
 }
