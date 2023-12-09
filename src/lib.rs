@@ -850,24 +850,14 @@ impl AminoAcidTranslator {
 
     fn error_out_mismatch(&self, aa_counter: usize) {
         let AminoAcidTranslator((header, amino_acid), (_, compare_dna), _) = self;
-        // let start = std::cmp::max(10, aa_counter) - 10;
-        let start = match aa_counter >= 10 {
-            True => aa_counter - 10,
-            False=> 0,
-        };
+        let start = std::cmp::max(10, aa_counter) - 10;
 
-        // let stop = std::cmp::min(amino_acid.len() - 10, aa_counter) + 10;
-        let stop= match (aa_counter + 10) <= amino_acid.len() {
-            True=> aa_counter + 10,
-            False => amino_acid.len()
-        };
+        let stop = std::cmp::min(amino_acid.len() - 10, aa_counter) + 10;
+        let percent = aa_counter as f64/amino_acid.len() as f64;
+        let compare_index = (percent * compare_dna.len() as f64) as usize;
 
-        let compare_start = start * 3;
-
-        let compare_stop = match (stop * 3) <= compare_dna.len() {
-            True => stop * 3,
-            False => compare_dna.len()
-        };
+        let compare_start = std::cmp::max(30, compare_index) - 30;
+        let compare_end = std::cmp::min(compare_dna.len() - 30, compare_index) + 30 ;
 
         self.error_out(format!(
             r#" 
@@ -879,7 +869,7 @@ impl AminoAcidTranslator {
                 Source Nucleotide: `{}`,
                 =======
             "#,
-            &amino_acid[start..stop], &compare_dna[compare_start..compare_stop]
+            &amino_acid[start..stop], &compare_dna[compare_start..compare_end]
         ));
     }
 
@@ -893,8 +883,9 @@ impl AminoAcidTranslator {
         let mut aa_counter: usize = 0;
         amino_acid
             .chars()
-            .map(|aa| {
-                aa_counter += 1;
+            .enumerate()
+            .map(|(aa_index, aa)| {
+                // aa_counter += 1;
                 match aa == '-' {
                     true => {
                         return "---".to_string() 
@@ -927,7 +918,7 @@ impl AminoAcidTranslator {
                                                         return t.clone()
                                                     },
                                                     None => {
-                                                        self.error_out_mismatch(aa_counter);
+                                                        self.error_out_mismatch(aa_index);
                                                         return "".to_string();
                                                     }
                                                 }
@@ -957,18 +948,20 @@ impl AminoAcidTranslator {
 pub fn pn2codon(
     file_steem: String,
     // gene_table: HashMap<char, Vec<String>>,
+    table_num: i32,
     seqs: HashMap<String, ((String, String), (i32, String, String))>
 ) -> String {    
     let mut dont_skip = RefCell::new(true);
+    let gene_table = DICT_TABLE.get(&table_num).unwrap();
     let file = String::from_iter(
         seqs
             .iter()
             .take_while(|_| dont_skip.clone().into_inner())
-            .map(|(header, ((aa_header, aa), (table_key ,nt_header, nt)))| {
+            .map(|(header, ((aa_header, aa), (_ ,nt_header, nt)))| {
                 if !dont_skip.clone().into_inner() {
                     println!("{}", dont_skip.clone().into_inner());
                 }
-                let gene_table = DICT_TABLE.get(table_key).unwrap();
+                // let gene_table = DICT_TABLE.get(table_key).unwrap();
                 let mut amino_acid = AminoAcidTranslator(
                     (aa_header.clone(), aa.clone()),
                     (nt_header.clone(), nt.clone()),
