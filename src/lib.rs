@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::DerefMut;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Duration;
@@ -16,11 +16,24 @@ use std::{panic, path::PathBuf, thread};
 use std::cell::RefCell;
 
 lazy_static! {
+    static ref IUPAC_CODES:HashMap<u8, Vec<u8>> = HashMap::from([
+            (b'R', vec![b'A', b'G']),
+            (b'Y', vec![b'C', b'T']),
+            (b'S', vec![b'G', b'C']),
+            (b'W', vec![b'A', b'T']),
+            (b'K', vec![b'G', b'T']),
+            (b'M', vec![b'A', b'C']),
+            (b'B', vec![b'C', b'G', b'T']),
+            (b'D', vec![b'A', b'G', b'T']),
+            (b'H', vec![b'A', b'C', b'T']),
+            (b'V', vec![b'A', b'C', b'G']),
+            (b'N', vec![b'A', b'C', b'G', b'T'])
+        ]);
     static ref VEC_PEPS: Vec<char> = vec![
         'A', 'L', 'W', 'Q', 'Y', 'E', 'C', 'D', 'F', 'G', 'H', 'I', 'M', 'K', 'P', 'R',
         'S', 'V', 'N', 'T', '*', '-', 'B', 'J', 'Z', 'X',
     ];
-    static ref BASES: Vec<char> = vec!['A', 'T', 'G', 'C', 'U', 'N'];
+    // static ref BASES: Vec<char> = vec!['A', 'T', 'G', 'C', 'U', 'N'];
 
     static ref DICT_TABLE: HashMap<i32, HashMap<char, Vec<String>>> = HashMap::from([
 //    let one:  HashMap<char,Vec<String>> = HashMap::from([
@@ -758,7 +771,49 @@ lazy_static! {
                 ]);
 
 }
+fn recurse(triplet: &[u8], working: &mut [u8], index: usize, output: &mut HashSet<String>) {
+    if index == triplet.len() {
+        // println!("{}", String::from_utf8(working.to_vec()).unwrap());
+        output.insert(String::from_utf8(working.to_vec()).unwrap());
+        return;
+    }
+    let this_char = triplet[index];
+    recurse(triplet, working, index + 1, output);
+    if IUPAC_CODES.contains_key(&this_char) {
+        for character in IUPAC_CODES.get(&this_char).unwrap() {
+            working[index] = *character;
+            recurse(triplet, working, index+1, output);
+        }
+    }
+    return;
+}
 
+pub fn make_iupac_set(triplet: &[u8]) -> HashSet<String> {
+    let mut output = HashSet::new();
+    let mut working = [0_u8;3];
+    for (i, &byte) in triplet.iter().enumerate(){
+        working[i] = byte;
+    }
+    recurse(triplet, &mut working, 0_usize, &mut output);
+    output
+}
+
+#[pyfunction]
+pub fn attempt_iupac_substitution(original_triplet: &str, taxa: Vec<String>) -> Option<String> {
+    let original_bytes = original_triplet.as_bytes();
+    let possible_subs = make_iupac_set(original_bytes);
+    // println!("searching for {}", original_triplet);
+    for made in &possible_subs {
+        // println!("{}", made);
+    }
+
+    for triplet in &taxa {
+        if possible_subs.contains(triplet) {
+            return Some(triplet.to_string());
+        }
+    }
+    None
+}
 
 #[derive(Clone)]
 struct AminoAcidTranslator(
@@ -863,13 +918,13 @@ impl AminoAcidTranslator {
             r#" 
                 ======
                 MISMATCH ERROR:
-                The following Amino Acid failed to match with its source Nucleotide pair.
+                The following Amino Acid failed to match with its source Nucleotide pair at aa site {}.
                 Amino Acid: `{}`,
                 ======
                 Source Nucleotide: `{}`,
                 =======
             "#,
-            &amino_acid[start..stop], &compare_dna[compare_start..compare_end]
+            aa_counter, &amino_acid[start..stop], &compare_dna[compare_start..compare_end]
         ));
     }
 
@@ -918,8 +973,13 @@ impl AminoAcidTranslator {
                                                         return t.clone()
                                                     },
                                                     None => {
-                                                        self.error_out_mismatch(aa_index);
-                                                        return "".to_string();
+                                                        // println!{"match failed, attemptint to rescue {}", &original_triplet}
+                                                        match attempt_iupac_substitution(&original_triplet, taxa.clone()) {
+                                                            Some(t) => return t,
+                                                            None => { self.error_out_mismatch(aa_index);
+                                                                return "".to_string();
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1027,5 +1087,6 @@ pub fn pn2codon_original_args(
 fn pr2codon(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pn2codon, m)?)?;
     m.add_function(wrap_pyfunction!(pn2codon_original_args, m)?)?;
+    m.add_function(wrap_pyfunction!(attempt_iupac_substitution, m)?)?;
     Ok(())
 }
