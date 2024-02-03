@@ -869,7 +869,7 @@ impl AminoAcidTranslator {
             };
 
             self.error_out(format!(
-                "{} is larger than {} {}",
+                "{}\nis larger than\n{}\n{}",
                 longer_shorter.0, longer_shorter.1, diff
             ));
         }
@@ -906,7 +906,7 @@ impl AminoAcidTranslator {
 
                 println!(
                     "\n===ERROR CAUGHT IN FILE {} AND HEADER {}:\n {}\n===",
-                    file_stem, header, message
+                    file_stem, truncate_header(header), message
                 );
             },
             false => (),
