@@ -821,14 +821,24 @@ struct AminoAcidTranslator(
     (String, String),
     (RefCell<bool>, String),
 );
-
+fn truncate_header(header: &str) -> String {
+    if header.len() > 150 {
+        format!("{}{}",header[0..150].to_string(), "...".to_string())
+    } else {
+        header.to_string()
+    }
+}
 impl AminoAcidTranslator {
     pub fn do_checks(&self) {
         let AminoAcidTranslator((aa_header, aa), (nt_header, nt), _) = self;
 
         if aa_header != nt_header {
+            let aa_header = truncate_header(aa_header);
+            let nt_header = truncate_header(nt_header);
             self.error_out(format!(
-                "AA header -> {} is not the same as NT header -> {}",
+                "AA header -> {}\n
+                is not the same as\n
+                NT header -> {}\n",
                 aa_header, nt_header
             ));
         }
@@ -836,8 +846,9 @@ impl AminoAcidTranslator {
         let len_aa = aa.len();
         let len_nt = nt.len();
         let aa_filt_mul = aa.chars().filter(|c| *c != '-').count() * 3;
-
         if len_nt != aa_filt_mul {
+            let aa_header = truncate_header(aa_header);
+            let nt_header = truncate_header(nt_header);
             let longer_shorter = match aa_filt_mul > len_nt {
                 true => (
                     format!("(AA -> {})", aa_header),
