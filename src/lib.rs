@@ -809,7 +809,7 @@ pub fn attempt_iupac_substitution(original_triplet: &str, taxa: Vec<String>) -> 
 
     for triplet in &taxa {
         if possible_subs.contains(triplet) {
-            return Some(triplet.to_string());
+            return Some(original_triplet.to_string());
         }
     }
     None
