@@ -34,6 +34,20 @@ lazy_static! {
         'S', 'V', 'N', 'T', '*', '-', 'B', 'J', 'Z', 'X',
     ];
     // static ref BASES: Vec<char> = vec!['A', 'T', 'G', 'C', 'U', 'N'];
+// 'T', vec!["ACR".to_string(), "ACY".to_string(), "ACS".to_string(), "ACW".to_string(), "ACK".to_string(), "ACM".to_string(), "ACB".to_string(), "ACD".to_string(), "ACH".to_string(), "ACV".to_string(),
+// 'R', vec!["AGR".to_string(), "CGR".to_string(), "CGY".to_string(), "CGS".to_string(), "CGW".to_string(), "CGK".to_string(), "CGM".to_string(), "CGB".to_string(), "CGD".to_string(), "CGH".to_string(), "CGV".to_string(), "MGA".to_string(), "MGR".to_string(),
+'S', vec!["AGY".to_string(), "TCR".to_string(), "TCY".to_string(), "TCS".to_string(), "TCW".to_string(), "TCK".to_string(), "TCM".to_string(), "TCB".to_string(), "TCD".to_string(), "TCH".to_string(), "TCV".to_string(),
+'I', vec!["ATY".to_string(), "ATW".to_string(), "ATM".to_string(), "ATH".to_string(),
+'Q', vec!["CAR".to_string(),
+'H', vec!["CAY".to_string(),
+'L', vec!["CTR".to_string(), "CTY".to_string(), "CTS".to_string(), "CTW".to_string(), "CTK".to_string(), "CTM".to_string(), "CTB".to_string(), "CTD".to_string(), "CTH".to_string(), "CTV".to_string(), "YTA".to_string(), "YTG".to_string(), "YTR".to_string(),
+'E', vec!["GAR".to_string(),
+'D', vec!["GAY".to_string(),
+'A', vec!["GCR".to_string(), "GCY".to_string(), "GCS".to_string(), "GCW".to_string(), "GCK".to_string(), "GCM".to_string(), "GCB".to_string(), "GCD".to_string(), "GCH".to_string(), "GCV".to_string(),
+'V', vec!["GTR".to_string(), "GTY".to_string(), "GTS".to_string(), "GTW".to_string(), "GTK".to_string(), "GTM".to_string(), "GTB".to_string(), "GTD".to_string(), "GTH".to_string(), "GTV".to_string(),
+'*', vec!["TAR".to_string(), "TRA".to_string(),
+'Y', vec!["TAY".to_string(),
+'C', vec!["TGY".to_string(),
 
     static ref DICT_TABLE: HashMap<i32, HashMap<char, Vec<String>>> = HashMap::from([
 //    let one:  HashMap<char,Vec<String>> = HashMap::from([
@@ -48,10 +62,10 @@ lazy_static! {
             ('P', vec!["CCT".to_string(), "CCC".to_string(), "CCA".to_string(), "CCG".to_string()]),
             ('H', vec!["CAT".to_string(), "CAC".to_string()]),
             ('Q', vec!["CAA".to_string(), "CAG".to_string()]),
-            ('R', vec!["CGT".to_string(), "CGC".to_string(), "CGA".to_string(), "CGG".to_string(), "AGA".to_string(), "AGG".to_string()]),
+            ('R', vec!["CGT".to_string(), "CGC".to_string(), "CGA".to_string(), "CGG".to_string(), "AGA".to_string(), "AGG".to_string(),"AGR".to_string(), "CGR".to_string(), "CGY".to_string(), "CGS".to_string(), "CGW".to_string(), "CGK".to_string(), "CGM".to_string(), "CGB".to_string(), "CGD".to_string(), "CGH".to_string(), "CGV".to_string(), "MGA".to_string(), "MGR".to_string()]),
             ('I', vec!["ATT".to_string(), "ATC".to_string(), "ATA".to_string()]),
             ('M', vec!["ATG".to_string()]),
-            ('T', vec!["ACT".to_string(), "ACC".to_string(), "ACA".to_string(), "ACG".to_string()]),
+            ('T', vec!["ACT".to_string(), "ACC".to_string(), "ACA".to_string(), "ACG".to_string(),"ACR".to_string(), "ACY".to_string(), "ACS".to_string(), "ACW".to_string(), "ACK".to_string(), "ACM".to_string(), "ACB".to_string(), "ACD".to_string(), "ACH".to_string(), "ACV".to_string()]),
             ('N', vec!["AAT".to_string(), "AAC".to_string()]),
             ('K', vec!["AAA".to_string(), "AAG".to_string()]),
             ('V', vec!["GTT".to_string(), "GTC".to_string(), "GTA".to_string(), "GTG".to_string()]),
