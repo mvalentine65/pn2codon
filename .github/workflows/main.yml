@@ -17,11 +17,9 @@ jobs:
     container: saferq/wrap-rocks:latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install stable rust
-        run: curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
       - name: build-version
         run: |
-          source /usr/local/.cargo/env
+          source /usr/local/cargo/env
           python${{ matrix.python-version }} -m maturin build -m Cargo.toml -i python${{ matrix.python-version }} --release
       - name: auditwheel
         run: |
