@@ -15,6 +15,17 @@ use std::time::Duration;
 use std::{panic, path::PathBuf, thread};
 use std::cell::RefCell;
 
+const VEC_PEPS: [u8;128] = [ 
+                            b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', // 0   - 15
+                            b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', // 16  - 31
+                            b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'*', b'X', b'X', b'-', b'X', b'X', // 32  - 47
+                            b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', b'X', // 48  - 68
+                            b'X', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'X', // 64  - 79
+                            b'P', b'Q', b'R', b'S', b'T', b'X', b'V', b'W', b'X', b'Y', b'Z', b'X', b'X', b'X', b'X', b'X', // 80  - 95
+                            b'X', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'X', // 96  - 111
+                            b'P', b'Q', b'R', b'S', b'T', b'X', b'V', b'W', b'X', b'Y', b'Z', b'X', b'X', b'X', b'X', b'X', // 112 - 127
+                           ];
+
 lazy_static! {
     static ref IUPAC_CODES:HashMap<u8, Vec<u8>> = HashMap::from([
             (b'R', vec![b'A', b'G']),
@@ -29,28 +40,7 @@ lazy_static! {
             (b'V', vec![b'A', b'C', b'G']),
             (b'N', vec![b'A', b'C', b'G', b'T'])
         ]);
-    static ref VEC_PEPS: Vec<char> = vec![
-        'A', 'L', 'W', 'Q', 'Y', 'E', 'C', 'D', 'F', 'G', 'H', 'I', 'M', 'K', 'P', 'R',
-        'S', 'V', 'N', 'T', '*', '-', 'B', 'J', 'Z', 'X',
-    ];
-    // static ref BASES: Vec<char> = vec!['A', 'T', 'G', 'C', 'U', 'N'];
-// 'T', vec!["ACR".to_string(), "ACY".to_string(), "ACS".to_string(), "ACW".to_string(), "ACK".to_string(), "ACM".to_string(), "ACB".to_string(), "ACD".to_string(), "ACH".to_string(), "ACV".to_string(),
-// 'R', vec!["AGR".to_string(), "CGR".to_string(), "CGY".to_string(), "CGS".to_string(), "CGW".to_string(), "CGK".to_string(), "CGM".to_string(), "CGB".to_string(), "CGD".to_string(), "CGH".to_string(), "CGV".to_string(), "MGA".to_string(), "MGR".to_string(),
-// 'S', vec!["AGY".to_string(), "TCR".to_string(), "TCY".to_string(), "TCS".to_string(), "TCW".to_string(), "TCK".to_string(), "TCM".to_string(), "TCB".to_string(), "TCD".to_string(), "TCH".to_string(), "TCV".to_string(),
-// 'I', vec!["ATY".to_string(), "ATW".to_string(), "ATM".to_string(), "ATH".to_string(),
-// 'Q', vec!["CAR".to_string(),
-// 'H', vec!["CAY".to_string(),
-// 'L', vec!["CTR".to_string(), "CTY".to_string(), "CTS".to_string(), "CTW".to_string(), "CTK".to_string(), "CTM".to_string(), "CTB".to_string(), "CTD".to_string(), "CTH".to_string(), "CTV".to_string(), "YTA".to_string(), "YTG".to_string(), "YTR".to_string(),
-// 'E', vec!["GAR".to_string(),
-// 'D', vec!["GAY".to_string(),
-// 'A', vec!["GCR".to_string(), "GCY".to_string(), "GCS".to_string(), "GCW".to_string(), "GCK".to_string(), "GCM".to_string(), "GCB".to_string(), "GCD".to_string(), "GCH".to_string(), "GCV".to_string(),
-// 'V', vec!["GTR".to_string(), "GTY".to_string(), "GTS".to_string(), "GTW".to_string(), "GTK".to_string(), "GTM".to_string(), "GTB".to_string(), "GTD".to_string(), "GTH".to_string(), "GTV".to_string(),
-// '*', vec!["TAR".to_string(), "TRA".to_string(),
-// 'Y', vec!["TAY".to_string(),
-// 'C', vec!["TGY".to_string(),
-
     static ref DICT_TABLE: HashMap<i32, HashMap<char, Vec<String>>> = HashMap::from([
-//    let one:  HashMap<char,Vec<String>> = HashMap::from([
         (1, HashMap::from([
             ('F', vec!["TTT".to_string(), "TTC".to_string(), "TTY".to_string()]),
             ('L', vec!["TTA".to_string(), "TTG".to_string(), "CTT".to_string(), "CTC".to_string(), "CTA".to_string(), "CTG".to_string(), "CTR".to_string(), "CTY".to_string(), "CTS".to_string(), "CTW".to_string(), "CTK".to_string(), "CTM".to_string(), "CTB".to_string(), "CTD".to_string(), "CTH".to_string(), "CTV".to_string(), "CTN".to_string(), "YTA".to_string(), "YTG".to_string(), "YTR".to_string(), "TTR".to_string()]),
@@ -79,7 +69,6 @@ lazy_static! {
             ('Z', vec!["CAA".to_string(), "CAG".to_string(), "GAA".to_string(), "GAG".to_string()]),
         ])),
 
-    //let two: HashMap<char, Vec<String>> = HashMap::from([
         (2, HashMap::from([
             ('F', vec!["TTT".to_string(), "TTC".to_string()]),
             ('L', vec!["TTA".to_string(), "TTG".to_string(), "CTT".to_string(), "CTC".to_string(), "CTA".to_string(), "CTG".to_string()]),
@@ -787,7 +776,6 @@ lazy_static! {
 }
 fn recurse(triplet: &[u8], working: &mut [u8], index: usize, output: &mut HashSet<String>) {
     if index == triplet.len() {
-        // println!("{}", String::from_utf8(working.to_vec()).unwrap());
         output.insert(String::from_utf8(working.to_vec()).unwrap());
         return;
     }
@@ -816,10 +804,6 @@ pub fn make_iupac_set(triplet: &[u8]) -> HashSet<String> {
 pub fn attempt_iupac_substitution(original_triplet: &str, taxa: Vec<String>) -> Option<String> {
     let original_bytes = original_triplet.as_bytes();
     let possible_subs = make_iupac_set(original_bytes);
-    // println!("searching for {}", original_triplet);
-    //for made in &possible_subs {
-        // println!("{}", made);
-    //}
 
     for triplet in &taxa {
         if possible_subs.contains(triplet) {
@@ -892,20 +876,13 @@ impl AminoAcidTranslator {
     pub fn streamline(&mut self) {
         let AminoAcidTranslator((header, amino_acid), (_, nucleotide), _) = self;
 
-        let mut amino_acid_trimmed = amino_acid.trim().to_uppercase();
-        let mut amino_acid_filtered = String::new();
+        let amino_acid_trimmed = amino_acid.trim();
+        let mut amino_acid_filtered = vec![b'X'; amino_acid_trimmed.len()];
 
-        amino_acid_trimmed.char_indices().for_each(|(i, c)| {
-            match !VEC_PEPS.contains(&c)
-            {
-                true => {
-                    amino_acid_filtered.push('X');
-                }
-                false => amino_acid_filtered.push(c),
-            }
-        });
-
-        *amino_acid = amino_acid_filtered;
+        for (index, byte) in amino_acid_trimmed.bytes().enumerate() {
+            amino_acid_filtered[index] = VEC_PEPS[byte as usize];
+        };
+        *amino_acid = unsafe { String::from_utf8_unchecked(amino_acid_filtered) }; 
         *nucleotide = nucleotide.replace("-", "").replace(".", "");
     }
 
@@ -965,7 +942,6 @@ impl AminoAcidTranslator {
             .chars()
             .enumerate()
             .map(|(aa_index, aa)| {
-                // aa_counter += 1;
                 match aa == '-' {
                     true => {
                         return "---".to_string() 
@@ -998,7 +974,6 @@ impl AminoAcidTranslator {
                                                         return t.clone()
                                                     },
                                                     None => {
-                                                        // println!{"match failed, attemptint to rescue {}", &original_triplet}
                                                         match attempt_iupac_substitution(&original_triplet, taxa.clone()) {
                                                             Some(t) => return t,
                                                             None => { self.error_out_mismatch(aa_index);
@@ -1026,13 +1001,9 @@ impl AminoAcidTranslator {
             .join("")
     }
 }
-// There is something weird going on with the second seqs tuple.
-// It used to run with two elements, but now I get a value error because its taking 3,
-// but the tuple hasnt changed. Should I make two versions of the function?
 #[pyfunction]
 pub fn pn2codon(
     file_steem: String,
-    // gene_table: HashMap<char, Vec<String>>,
     table_num: i32,
     seqs: HashMap<String, ((String, String), (i32, String, String))>
 ) -> String {    
@@ -1046,7 +1017,6 @@ pub fn pn2codon(
                 if !dont_skip.clone().into_inner() {
                     println!("{}", dont_skip.clone().into_inner());
                 }
-                // let gene_table = DICT_TABLE.get(table_key).unwrap();
                 let mut amino_acid = AminoAcidTranslator(
                     (aa_header.clone(), aa.clone()),
                     (nt_header.clone(), nt.clone()),
