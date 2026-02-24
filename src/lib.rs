@@ -817,9 +817,9 @@ pub fn attempt_iupac_substitution(original_triplet: &str, taxa: Vec<String>) -> 
     let original_bytes = original_triplet.as_bytes();
     let possible_subs = make_iupac_set(original_bytes);
     // println!("searching for {}", original_triplet);
-    for made in &possible_subs {
+    //for made in &possible_subs {
         // println!("{}", made);
-    }
+    //}
 
     for triplet in &taxa {
         if possible_subs.contains(triplet) {
@@ -1109,7 +1109,7 @@ pub fn pn2codon_original_args(
 }
 
 #[pymodule]
-fn pr2codon(_py: Python, m: &PyModule) -> PyResult<()> {
+fn pr2codon(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pn2codon, m)?)?;
     m.add_function(wrap_pyfunction!(pn2codon_original_args, m)?)?;
     m.add_function(wrap_pyfunction!(attempt_iupac_substitution, m)?)?;
