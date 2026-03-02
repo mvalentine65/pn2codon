@@ -9,6 +9,7 @@ bindings = "pyo3"
 
 [project]
 name = "pr2codon"
+version = "1.1.19"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
