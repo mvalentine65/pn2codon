@@ -16,7 +16,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
     container: saferq/wrap-rocks:latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: build-version
         run: |
           source /usr/local/cargo/env
@@ -29,5 +29,5 @@ jobs:
       - name: pypi upload
         run: |
           for wheel in target/wheels/*; do
-            python${{ matrix.python-version }} -m maturin upload ${wheel} -u ${{ secrets.VALENTINE_PYPI_USERNAME }} -p ${{ secrets.VALENTINE_PYPI_PASSWORD }}
+            python${{ matrix.python-version }} -m maturin upload ${wheel} -u ${{ secrets.TOKEN_NAME }} -p ${{ secrets.PROJECT_TOKEN }}
           done
