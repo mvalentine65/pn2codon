@@ -677,6 +677,17 @@ impl AminoAcidTranslator {
             .trim()
             .chars()
             .map(|c| {
+                // '.' is an alignment gap (HMMER/needletail emit '.' for
+                // insert-state gaps, '-' for match-state gaps). Normalise it to
+                // '-' so the length check in `do_checks` — which counts
+                // `filter(|c| *c != '-')` — excludes it, exactly as the
+                // nucleotide track strips both '-' and '.'. Without this, '.'
+                // falls through to the `else` branch and becomes 'X', which is
+                // then miscounted as a residue and yields a spurious
+                // "Peptide and nucleotide lengths are inconsistent." error.
+                if c == '.' {
+                    return '-';
+                }
                 let upper = c.to_ascii_uppercase();
                 if VALID_PEPS.contains(&upper) {
                     upper
