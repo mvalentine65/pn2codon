@@ -13,21 +13,27 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-    container: saferq/wrap-rocks:latest
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    container: thernn/sapphyre-build:latest
     steps:
-      - uses: actions/checkout@v4
-      - name: build-version
+      - uses: actions/checkout@v5
+      - name: install libclang
+        # Required by librocksdb-sys >=0.18 (rocksdb 0.24+) which runs bindgen
+        # at build time instead of shipping pre-generated bindings.
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update && apt-get install -y --no-install-recommends clang libclang-dev
+          elif command -v yum >/dev/null; then
+            yum install -y clang clang-devel
+          fi
+      - name: build-wheels
         run: |
           source /usr/local/cargo/env
           python${{ matrix.python-version }} -m maturin build -m Cargo.toml -i python${{ matrix.python-version }} --release
-      - name: auditwheel
+      
+      - name: auditwheels
         run: |
           for wheel in target/wheels/*.whl; do
             auditwheel repair "${wheel}"
+            python3.12 -m maturin upload ${wheel} -u ${{ secrets.TOKEN_NAME }} -p ${{ secrets.PROJECT_TOKEN }}
             done
-      - name: pypi upload
-        run: |
-          for wheel in target/wheels/*; do
-            python${{ matrix.python-version }} -m maturin upload ${wheel} -u ${{ secrets.TOKEN_NAME }} -p ${{ secrets.PROJECT_TOKEN }}
-          done
