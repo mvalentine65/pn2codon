@@ -1,5 +1,6 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::types::PyModule;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -1040,7 +1041,7 @@ pub fn pn2codon_original_args(
 }
 
 #[pymodule]
-fn pr2codon(_py: Python, m: &PyModule) -> PyResult<()> {
+fn pr2codon(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pn2codon, m)?)?;
     m.add_function(wrap_pyfunction!(pn2codon_original_args, m)?)?;
     m.add_function(wrap_pyfunction!(attempt_iupac_substitution, m)?)?;
